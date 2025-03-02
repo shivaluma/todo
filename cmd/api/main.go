@@ -51,8 +51,6 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Recovery())
 
-
-
 	router.Use(middleware.RequestID(log))
 	router.Use(middleware.Logger(log))
 	router.Use(middleware.CORS(cfg.CORS))

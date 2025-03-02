@@ -1,150 +1,171 @@
 version: "3.8"
 
 services:
-    app:
-        build:
-            context: .
-            dockerfile: Dockerfile.prod
-        image: todo-api:latest
-        ports:
-            - "8080:8080"
-        environment:
-            - DB_HOST=postgres
-            - DB_PORT=5432
-            - DB_USER=${DB_USER:-postgres}
-            - DB_PASSWORD=${DB_PASSWORD:-postgres}
-            - DB_NAME=${DB_NAME:-todo_db}
-            - JWT_SECRET=${JWT_SECRET}
-            - ENV=production
-            - LOG_LEVEL=info
-            - LOG_FORMAT=json
-        depends_on:
-            postgres:
-                condition: service_healthy
-        restart: always
-        deploy:
-            resources:
-                limits:
-                    cpus: "1"
-                    memory: 512M
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
-            interval: 30s
-            timeout: 10s
-            retries: 3
-            start_period: 40s
-        networks:
-            - todo-network
+  migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: todo-api:latest
+    command: ["/app/bin/migrate", "up"]
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=${DB_NAME:-todo_db}
+      - ENV=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - todo-network
 
-    postgres:
-        image: postgres:16-alpine
-        ports:
-            - "5432:5432"
-        environment:
-            - POSTGRES_USER=${DB_USER:-postgres}
-            - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-            - POSTGRES_DB=${DB_NAME:-todo_db}
-        volumes:
-            - postgres-data:/var/lib/postgresql/data
-        networks:
-            - todo-network
-        healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
-            interval: 10s
-            timeout: 5s
-            retries: 5
-        deploy:
-            resources:
-                limits:
-                    cpus: "1"
-                    memory: 1G
-        restart: always
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: todo-api:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=${DB_NAME:-todo_db}
+      - JWT_SECRET=${JWT_SECRET}
+      - ENV=production
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - todo-network
 
-    prometheus:
-        image: prom/prometheus:latest
-        ports:
-            - "9090:9090"
-        volumes:
-            - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-            - prometheus-data:/prometheus
-        command:
-            - "--config.file=/etc/prometheus/prometheus.yml"
-            - "--storage.tsdb.path=/prometheus"
-            - "--storage.tsdb.retention.time=15d"
-            - "--web.console.libraries=/etc/prometheus/console_libraries"
-            - "--web.console.templates=/etc/prometheus/consoles"
-            - "--web.enable-lifecycle"
-        restart: always
-        deploy:
-            resources:
-                limits:
-                    cpus: "0.5"
-                    memory: 512M
-        healthcheck:
-            test: ["CMD", "wget", "--spider", "http://localhost:9090/-/healthy"]
-            interval: 30s
-            timeout: 10s
-            retries: 3
-        networks:
-            - todo-network
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${DB_NAME:-todo_db}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - todo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+    restart: always
 
-    grafana:
-        image: grafana/grafana:latest
-        ports:
-            - "3000:3000"
-        environment:
-            - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
-            - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-            - GF_USERS_ALLOW_SIGN_UP=false
-            - GF_INSTALL_PLUGINS=grafana-piechart-panel
-        volumes:
-            - grafana-data:/var/lib/grafana
-            - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-            - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
-        restart: always
-        deploy:
-            resources:
-                limits:
-                    cpus: "0.5"
-                    memory: 256M
-        healthcheck:
-            test:
-                ["CMD", "wget", "--spider", "http://localhost:3000/api/health"]
-            interval: 30s
-            timeout: 10s
-            retries: 3
-        depends_on:
-            - prometheus
-        networks:
-            - todo-network
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - todo-network
 
-    nginx:
-        image: nginx:alpine
-        ports:
-            - "5080:80"
-            - "5443:443"
-        volumes:
-            - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-            - ./nginx/conf.d:/etc/nginx/conf.d:ro
-            - ./nginx/ssl:/etc/nginx/ssl:ro
-        depends_on:
-            - app
-            - prometheus
-            - grafana
-        restart: always
-        deploy:
-            resources:
-                limits:
-                    cpus: "0.5"
-                    memory: 128M
-        networks:
-            - todo-network
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - prometheus
+    networks:
+      - todo-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "5080:80"
+      - "5443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+      - prometheus
+      - grafana
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+    networks:
+      - todo-network
 
 networks:
-    todo-network:
-        driver: bridge
+  todo-network:
+    driver: bridge
 
 volumes:
-    postgres-data:
-    prometheus-data:
-    grafana-data:
+  postgres-data:
+  prometheus-data:
+  grafana-data:

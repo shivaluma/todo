@@ -1,4 +1,4 @@
-.PHONY: build run test clean migrate-up migrate-down docker-up docker-down docker-up-logs docker-rebuild deps deps-update lint docs help dev prod-build prod-up prod-down prod-logs prod-full-up prod-full-down gen-certs
+.PHONY: build run test clean migrate-up migrate-down docker-up docker-down docker-up-logs docker-rebuild deps deps-update lint docs help dev prod-build prod-up prod-down prod-logs prod-full-up prod-full-down gen-certs prod-migrate-up prod-migrate
 
 # Build the application
 build:
@@ -89,6 +89,14 @@ help:
 	@echo "  make deps-update    - Update Go dependencies"
 	@echo "  make lint           - Run linter"
 	@echo "  make docs           - Generate Go documentation"
+	@echo "  make prod-build     - Build production images"
+	@echo "  make prod-up        - Start production stack"
+	@echo "  make prod-down      - Stop production stack"
+	@echo "  make prod-logs      - View production logs"
+	@echo "  make prod-full-up   - Start full production stack with monitoring"
+	@echo "  make prod-full-down - Stop full production stack"
+	@echo "  make prod-migrate-up - Run database migrations in production (full stack)"
+	@echo "  make prod-migrate   - Run database migrations in production (basic stack)"
 	@echo "  make help           - Show this help message"
 
 # Production deployment targets
@@ -123,3 +131,11 @@ gen-certs:
 	openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 		-keyout nginx/ssl/todo-api.key -out nginx/ssl/todo-api.crt \
 		-subj "/C=US/ST=State/L=City/O=Organization/CN=todo-api.example.com"
+
+# Run database migrations in production (full stack)
+prod-migrate-up:
+	docker-compose -f docker-compose.prod.full.yml run --rm migrations
+
+# Run database migrations in production (basic stack)
+prod-migrate:
+	docker-compose -f docker-compose.prod.yml run --rm migrations
