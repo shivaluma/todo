@@ -243,6 +243,8 @@ services:
     image: todo-client:latest
     ports:
       - "3333:3333"
+    volumes:
+      - /var/www/todo-client/static:/app/static
     environment:
       - API_URL=https://todo.shiro.fit/api/v1
       - NEXT_PUBLIC_API_URL=https://todo.shiro.fit/api/v1
