@@ -137,6 +137,7 @@ export function RegisterForm({
                           {...field}
                           type="password"
                           autoComplete="new-password"
+                          placeholder="********"
                           disabled={isPending}
                         />
                       </FormControl>

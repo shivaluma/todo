@@ -125,8 +125,9 @@ export function LoginForm({
                         <Input
                           {...field}
                           type="password"
-                          autoComplete="abc"
+                          autoComplete="off"
                           disabled={isPending}
+                          placeholder="********"
                         />
                       </FormControl>
                       <FormMessage />
