@@ -236,6 +236,30 @@ services:
     networks:
       - todo-network
 
+  todo-client:
+    build:
+      context: ./app/todo-client
+      dockerfile: Dockerfile
+    image: todo-client:latest
+    ports:
+      - "3333:3333"
+    environment:
+      - API_URL=https://todo.shiro.fit/api/v1
+      - NEXT_PUBLIC_API_URL=https://todo.shiro.fit/api/v1
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:3333/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - todo-network
+
   nginx:
     image: nginx:alpine
     ports:
@@ -249,6 +273,7 @@ services:
       - prometheus
       - grafana
       - alertmanager
+      - todo-client
     restart: always
     deploy:
       resources:

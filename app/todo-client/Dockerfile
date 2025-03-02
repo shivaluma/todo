@@ -1,4 +1,4 @@
-FROM asia.gcr.io/docker-veep/sre/node20-alpine3.19-beg:1.0.0 AS deps
+FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -12,7 +12,7 @@ RUN \
 
 
 # Rebuild the source code only when needed
-FROM asia.gcr.io/docker-veep/sre/node20-alpine3.19-beg:1.0.0 as builder
+FROM node:20-alpine as builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -25,7 +25,7 @@ RUN \
   fi
 
 # Production image, copy all the files and run next
-FROM asia.gcr.io/docker-veep/sre/node20-alpine3.19-beg:1.0.0 AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -39,9 +39,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 3333
 
-ENV PORT=3000
+ENV PORT=3333
 
 ENV HOSTNAME="0.0.0.0"
 CMD ["node", "server.js"]
