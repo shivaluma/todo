@@ -7,6 +7,6 @@ const config = {
       og_image: "/og-todo.png",
     },
   },
-};
+}
 
-export default config;
+export default config
