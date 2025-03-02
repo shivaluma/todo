@@ -15,30 +15,31 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application with optimizations
+# Build the migration tool
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags="-w -s -X main.version=$(git describe --tags --always) -X main.buildTime=$(date +%Y-%m-%dT%H:%M:%S)" \
-    -o bin/api ./cmd/api
+    -ldflags="-w -s" \
+    -o bin/migrate ./cmd/migrate
 
 # Create a minimal production image
 FROM alpine:3.19
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata curl
+RUN apk add --no-cache ca-certificates tzdata
 
 # Set working directory
 WORKDIR /app
 
-# Copy the binary from the builder stage
-COPY --from=builder /app/bin/api /app/bin/api
+# Copy the migration binary from the builder stage
+COPY --from=builder /app/bin/migrate /app/bin/migrate
+
+# Copy necessary files
+COPY --from=builder /app/migrations /app/migrations
 
 # Create a non-root user to run the application
 RUN adduser -D -g '' appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-# Expose the application port
-EXPOSE 8080
-
 # Set the entry point
-ENTRYPOINT ["/app/bin/api"]
+ENTRYPOINT ["/app/bin/migrate"]
+CMD ["up"]

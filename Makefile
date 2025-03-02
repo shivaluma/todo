@@ -1,4 +1,4 @@
-.PHONY: build run test clean migrate-up migrate-down docker-up docker-down docker-up-logs docker-rebuild deps deps-update lint docs help dev prod-build prod-up prod-down prod-logs prod-full-up prod-full-down gen-certs prod-migrate-up prod-migrate
+.PHONY: build run test clean migrate-up migrate-down docker-up docker-down docker-up-logs docker-rebuild deps deps-update lint docs help dev prod-build prod-up prod-down prod-logs prod-full-up prod-full-down gen-certs prod-migrate-up prod-migrate prod-build-migrate prod-build-all
 
 # Build the application
 build:
@@ -97,6 +97,8 @@ help:
 	@echo "  make prod-full-down - Stop full production stack"
 	@echo "  make prod-migrate-up - Run database migrations in production (full stack)"
 	@echo "  make prod-migrate   - Run database migrations in production (basic stack)"
+	@echo "  make prod-build-migrate - Build migration image"
+	@echo "  make prod-build-all - Build all production images"
 	@echo "  make help           - Show this help message"
 
 # Production deployment targets
@@ -104,6 +106,13 @@ help:
 # Build production images
 prod-build:
 	docker-compose -f docker-compose.prod.yml build
+
+# Build migration image
+prod-build-migrate:
+	docker build -t todo-api-migrate:latest -f Dockerfile.migrate .
+
+# Build all production images
+prod-build-all: prod-build prod-build-migrate
 
 # Start production stack
 prod-up:
