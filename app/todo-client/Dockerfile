@@ -11,7 +11,7 @@ RUN \
   fi
 
 # Rebuild the source code only when needed
-FROM deps as builder
+FROM deps AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
