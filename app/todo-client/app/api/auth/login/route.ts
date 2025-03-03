@@ -25,17 +25,10 @@ export async function POST(request: NextRequest) {
     const data = await response.json()
 
     // Set the JWT token in an HTTP-only cookie
-    await serverCookies.setAuthToken(data.token)
+    await serverCookies.setAuthToken(data.data.token)
 
     // Return user data without sensitive information
-    return NextResponse.json({
-      user: {
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.name,
-        roles: data.user.roles || [],
-      },
-    })
+    return NextResponse.json(data)
   } catch (error) {
     return NextResponse.json(error, { status: 500 })
   }

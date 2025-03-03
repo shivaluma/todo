@@ -3,6 +3,7 @@ import {
   LoginCredentials,
   RegisterCredentials,
   UserSession,
+  type RegisterResponse,
 } from "@/lib/auth/types"
 
 import apiClient from "./client"
@@ -22,7 +23,7 @@ const authService = {
       "/auth/login",
       credentials
     )
-    return response.data.user
+    return response.data
   },
 
   /**
@@ -30,12 +31,12 @@ const authService = {
    * @param credentials User registration data
    * @returns User session data
    */
-  async register(credentials: RegisterCredentials): Promise<UserSession> {
-    const response = await apiClient.post<AuthResponse>(
+  async register(credentials: RegisterCredentials): Promise<RegisterResponse> {
+    const response = await apiClient.post<RegisterResponse>(
       "/auth/register",
       credentials
     )
-    return response.data.user
+    return response.data
   },
 
   /**

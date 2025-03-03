@@ -24,14 +24,7 @@ export async function POST(request: NextRequest) {
     const data = await response.json()
 
     // Return user data without sensitive information
-    return NextResponse.json({
-      user: {
-        id: data.id,
-        email: data.email,
-        name: data.name,
-        roles: ["USER"], // Default role for new users
-      },
-    })
+    return NextResponse.json(data)
   } catch (error) {
     console.error("Registration error:", error)
     return NextResponse.json(

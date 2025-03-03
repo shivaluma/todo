@@ -10,10 +10,23 @@ export enum UserRole {
  * User session data (non-sensitive information for client-side)
  */
 export interface UserSession {
+  data: {
+    token: string
+  }
+}
+
+export interface RegisterResponse {
+  status: string
+  message: string
+  data: UserInformation
+  timestamp: string
+  request_id: string
+}
+
+interface UserInformation {
   id: string
+  username: string
   email: string
-  name: string
-  roles: UserRole[]
 }
 
 /**
@@ -47,8 +60,9 @@ export interface RegisterCredentials {
  * Auth API response interfaces
  */
 export interface AuthResponse {
-  user: UserSession
-  token?: string
+  data: {
+    token: string
+  }
 }
 
 /**
