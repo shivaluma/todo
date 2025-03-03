@@ -2,25 +2,7 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
 import { serverCookies } from "@/lib/auth/cookies"
-import {
-  JWTPayload,
-  RouteConfig,
-  UserRole,
-  UserSession,
-} from "@/lib/auth/types"
-
-/**
- * Check if a user has the required roles
- */
-export function hasRequiredRoles(
-  user: UserSession | null,
-  requiredRoles?: UserRole[]
-): boolean {
-  if (!requiredRoles || requiredRoles.length === 0) return true
-  if (!user) return false
-
-  return requiredRoles.some((role) => user.roles.includes(role))
-}
+import { JWTPayload, RouteConfig, UserRole } from "@/lib/auth/types"
 
 /**
  * Get the current auth token from the request headers or cookies

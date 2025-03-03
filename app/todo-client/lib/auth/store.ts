@@ -86,14 +86,7 @@ export const useAuthStore = create<AuthStore>()(
         try {
           set({ isLoading: true, error: null })
 
-          const user = await authService.register(credentials)
-
-          set({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          })
+          await authService.register(credentials)
         } catch (error) {
           set({
             isLoading: false,
