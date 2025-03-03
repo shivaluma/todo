@@ -33,7 +33,7 @@ func Logger(log *logger.Logger) gin.HandlerFunc {
 
 		// Get request ID from context if available
 		var requestID string
-		if id, exists := c.Get(RequestIDContextKey); exists {
+		if id, exists := c.Get(string(RequestIDKey)); exists {
 			requestID = id.(string)
 		}
 

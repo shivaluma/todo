@@ -9,6 +9,7 @@ import (
 	"github.com/sh1ro/todo-api/internal/app/application/command"
 	"github.com/sh1ro/todo-api/internal/app/application/query"
 	"github.com/sh1ro/todo-api/internal/app/domain/model"
+	"github.com/sh1ro/todo-api/internal/app/interfaces/middleware"
 	"github.com/sh1ro/todo-api/pkg/logger"
 	"github.com/sh1ro/todo-api/pkg/response"
 	"github.com/sh1ro/todo-api/pkg/validator"
@@ -68,7 +69,7 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 	}
 
 	// Get user ID from context
-	userID, exists := c.Get("userID")
+	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		response.RespondWithUnauthorized(c, "User ID not found in context")
 		return
@@ -90,7 +91,7 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 // GetTodo handles getting a todo by ID
 func (h *TodoHandler) GetTodo(c *gin.Context) {
 	// Get user ID from context
-	userID, exists := c.Get("userID")
+	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		response.RespondWithUnauthorized(c, "User ID not found in context")
 		return
@@ -127,7 +128,7 @@ func (h *TodoHandler) GetTodo(c *gin.Context) {
 // ListTodos handles listing todos with filters
 func (h *TodoHandler) ListTodos(c *gin.Context) {
 	// Get user ID from context
-	userID, exists := c.Get("userID")
+	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		response.RespondWithUnauthorized(c, "User ID not found in context")
 		return
@@ -217,7 +218,7 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 	}
 
 	// Get user ID from context
-	userID, exists := c.Get("userID")
+	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		response.RespondWithUnauthorized(c, "User ID not found in context")
 		return
@@ -252,7 +253,7 @@ func (h *TodoHandler) DeleteTodo(c *gin.Context) {
 	log := h.GetLogger(c)
 
 	// Get user ID from context
-	userID, exists := c.Get("userID")
+	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		response.RespondWithUnauthorized(c, "User ID not found in context")
 		return
@@ -284,7 +285,7 @@ func (h *TodoHandler) DeleteTodo(c *gin.Context) {
 // GetOverdueTodos handles getting overdue todos
 func (h *TodoHandler) GetOverdueTodos(c *gin.Context) {
 	// Get user ID from context
-	userID, exists := c.Get("userID")
+	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		response.RespondWithUnauthorized(c, "User ID not found in context")
 		return

@@ -10,6 +10,28 @@ import (
 	"github.com/sh1ro/todo-api/pkg/logger"
 )
 
+// contextKey is an unexported type for context keys to prevent collisions
+type contextKey string
+
+// Exported context keys
+const (
+	// UserIDKey is the context key for user ID
+	UserIDKey contextKey = "user_id"
+	
+	// ClaimsKey is the context key for JWT claims
+	ClaimsKey contextKey = "claims"
+)
+
+// GetUserID retrieves the user ID from the context
+func GetUserID(c *gin.Context) (interface{}, bool) {
+	return c.Get(string(UserIDKey))
+}
+
+// GetClaims retrieves the JWT claims from the context
+func GetClaims(c *gin.Context) (interface{}, bool) {
+	return c.Get(string(ClaimsKey))
+}
+
 // AuthMiddleware is a middleware that checks for a valid JWT token
 type AuthMiddleware struct {
 	authService *service.AuthService
@@ -71,9 +93,9 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		// Set the user ID and username in the context
-		c.Set("userID", user.ID)
-		c.Set("claims", claims)
+		// Set the user ID and claims in the context
+		c.Set(string(UserIDKey), user.ID)
+		c.Set(string(ClaimsKey), claims)
 
 		c.Next()
 	}

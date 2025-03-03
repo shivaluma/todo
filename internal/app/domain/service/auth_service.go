@@ -67,28 +67,28 @@ func (s *AuthService) Register(ctx context.Context, fullname, email, password st
 }
 
 // Login authenticates a user and returns a JWT token
-func (s *AuthService) Login(ctx context.Context, email, password string) (string, error) {
+func (s *AuthService) Login(ctx context.Context, email, password string) (*model.User, string, error) {
 	// Find user by email
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		s.logger.Error("User not found", "email", email)
-		return "", errors.New("invalid credentials")
+		return nil, "", errors.New("invalid credentials")
 	}
 
 	// Check password
 	if !user.CheckPassword(password) {
 		s.logger.Error("Invalid password", "email", email)
-		return "", errors.New("invalid credentials")
+		return nil,"", errors.New("invalid credentials")
 	}
 
 	// Generate JWT token
 	token, err := s.GenerateToken(user)
 	if err != nil {
 		s.logger.Error("Failed to generate token", "error", err)
-		return "", err
+		return nil, "", err
 	}
 
-	return token, nil
+	return user, token, nil
 }
 
 // GenerateToken generates a JWT token for a user
@@ -160,6 +160,7 @@ func (s *AuthService) GetUserFromId(ctx context.Context, id string) (*model.User
 	if err != nil {
 		return nil, err
 	}
+    
 
 	user, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {

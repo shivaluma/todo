@@ -2,7 +2,10 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/sh1ro/todo-api/internal/app/application/command"
+	"github.com/sh1ro/todo-api/internal/app/domain/model"
+	"github.com/sh1ro/todo-api/internal/app/interfaces/middleware"
 	"github.com/sh1ro/todo-api/pkg/logger"
 	"github.com/sh1ro/todo-api/pkg/response"
 	"github.com/sh1ro/todo-api/pkg/validator"
@@ -29,6 +32,7 @@ func NewAuthHandler(
 		BaseHandler:         NewBaseHandler(logger),
 		registerUserHandler: registerUserHandler,
 		loginUserHandler:    loginUserHandler,
+		getUserHandler:      getUserHandler,
 		validator:           validator,
 	}
 }
@@ -79,6 +83,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 // LoginResponse represents the response for a successful login
 type LoginResponse struct {
 	Token string `json:"token"`
+	User  *model.User `json:"user"`
 }
 
 // Login handles user login
@@ -110,6 +115,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// Create a strongly typed response
 	loginResponse := LoginResponse{
 		Token: result.Token,
+		User:  result.User,
 	}
 
 	// Use the generic response helper for type safety
@@ -118,17 +124,22 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // Me returns the current user
 func (h *AuthHandler) Me(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	// Use the helper function to get user ID from context
+	userID, exists := middleware.GetUserID(c)
+    
+    // Get request-specific logger
+	log := h.GetLogger(c)
+    
+    log.Info("User ID", "user_id", userID)
+
 	if !exists {
+		log.Error("User ID not found in context")
 		response.RespondWithUnauthorized(c, "Unauthorized")
 		return
 	}
 
-	// Get request-specific logger
-	log := h.GetLogger(c)
-
 	user, err := h.getUserHandler.Handle(c.Request.Context(), command.GetUserCommand{
-		UserID: userID.(string),
+		UserID: userID.(uuid.UUID).String(),
 	})
 	if err != nil {
 		log.Error("Failed to get user", "error", err)

@@ -72,6 +72,12 @@ func RegisterRoutes(router *gin.RouterGroup, db *persistence.PostgresDB, log *lo
 		authRoutes.POST("/login", authHandler.Login)
 	}
 
+	userRoutes := router.Group("/users")
+	userRoutes.Use(authMiddleware.Authenticate())
+	{
+		userRoutes.GET("/me", authHandler.Me)
+	}
+
 	// Register todo routes (protected by auth middleware)
 	todoRoutes := router.Group("/todos")
 	todoRoutes.Use(authMiddleware.Authenticate())

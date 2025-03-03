@@ -9,9 +9,20 @@ import (
 const (
 	// RequestIDHeader is the header key for request ID
 	RequestIDHeader = "X-Request-ID"
-	// RequestIDContextKey is the context key for request ID
-	RequestIDContextKey = "requestID"
 )
+
+// RequestIDKey is the context key for request ID
+const RequestIDKey contextKey = "requestID"
+
+// GetRequestID retrieves the request ID from the context
+func GetRequestID(c *gin.Context) (string, bool) {
+	if id, exists := c.Get(string(RequestIDKey)); exists {
+		if requestID, ok := id.(string); ok {
+			return requestID, true
+		}
+	}
+	return "", false
+}
 
 // RequestID returns a middleware that adds a unique request ID to each request
 func RequestID(log *logger.Logger) gin.HandlerFunc {
@@ -25,7 +36,7 @@ func RequestID(log *logger.Logger) gin.HandlerFunc {
 		}
 
 		// Set request ID in context for other handlers to use
-		c.Set(RequestIDContextKey, requestID)
+		c.Set(string(RequestIDKey), requestID)
 
 		// Set request ID in response header
 		c.Writer.Header().Set(RequestIDHeader, requestID)

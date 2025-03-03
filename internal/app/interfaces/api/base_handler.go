@@ -31,8 +31,9 @@ func (h *BaseHandler) GetLogger(c *gin.Context) *logger.Logger {
 
 // GetRequestID returns the request ID from the current request
 func (h *BaseHandler) GetRequestID(c *gin.Context) string {
-	if id, exists := c.Get(middleware.RequestIDContextKey); exists {
-		return id.(string)
+	requestID, exists := middleware.GetRequestID(c)
+	if exists {
+		return requestID
 	}
 	return ""
 }
