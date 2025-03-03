@@ -27,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Modified AuthHandler and TodoHandler to use request-specific logger
 -   Improved error handling with consistent request ID tracking
 -   Enhanced validator implementation with custom error messages for common validation rules
+-   Replaced "username" field with "fullname" throughout the application
+    -   Updated database schema to remove username column and add fullname column
+    -   Updated user model to use fullname instead of username
+    -   Updated authentication flow to use email as the unique identifier
+    -   Updated JWT tokens to include fullname instead of username
+    -   Updated API endpoints to use fullname in requests and responses
 
 ### Security
 
@@ -37,3 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -   Fixed validation in Register and Login handlers to properly validate all fields
 -   Fixed DeleteTodo handler to use the correct field name (ID instead of TodoID)
+
+### Migration Notes
+
+-   Existing usernames have been migrated to the fullname field
+-   Email is now the only unique identifier for users
+-   Login now requires email instead of username or email

@@ -13,7 +13,7 @@ import (
 // JWTClaims represents the claims in a JWT token
 type JWTClaims struct {
 	UserID   string `json:"user_id"`
-	Username string `json:"username"`
+	Fullname string `json:"fullname"`
 	jwt.RegisteredClaims
 }
 
@@ -25,10 +25,10 @@ type JWTService struct {
 }
 
 // NewJWTService creates a new JWT service
-func NewJWTService(secretKey string, expiration time.Duration, logger *logger.Logger) *JWTService {
+func NewJWTService(secretKey string, tokenDuration time.Duration, logger *logger.Logger) *JWTService {
 	return &JWTService{
 		secretKey:  []byte(secretKey),
-		expiration: expiration,
+		expiration: tokenDuration,
 		logger:     logger,
 	}
 }
@@ -39,7 +39,7 @@ func (s *JWTService) GenerateToken(user *model.User) (string, error) {
 
 	claims := &JWTClaims{
 		UserID:   user.ID.String(),
-		Username: user.Username,
+		Fullname: user.Fullname,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

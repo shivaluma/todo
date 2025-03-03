@@ -10,7 +10,7 @@ import (
 // User represents a user in the system
 type User struct {
 	ID           uuid.UUID `json:"id"`
-	Username     string    `json:"username"`
+	Fullname     string    `json:"fullname"`
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"`
 	CreatedAt    time.Time `json:"created_at"`
@@ -18,7 +18,7 @@ type User struct {
 }
 
 // NewUser creates a new user
-func NewUser(username, email, password string) (*User, error) {
+func NewUser(fullname, email, password string) (*User, error) {
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -28,7 +28,7 @@ func NewUser(username, email, password string) (*User, error) {
 	now := time.Now().UTC()
 	return &User{
 		ID:           uuid.New(),
-		Username:     username,
+		Fullname:     fullname,
 		Email:        email,
 		PasswordHash: string(hashedPassword),
 		CreatedAt:    now,
@@ -60,8 +60,8 @@ func (u *User) UpdateEmail(email string) {
 	u.UpdatedAt = time.Now().UTC()
 }
 
-// UpdateUsername updates the user's username
-func (u *User) UpdateUsername(username string) {
-	u.Username = username
+// UpdateFullname updates the user's fullname
+func (u *User) UpdateFullname(fullname string) {
+	u.Fullname = fullname
 	u.UpdatedAt = time.Now().UTC()
 }

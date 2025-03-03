@@ -73,7 +73,6 @@ func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
 
 		// Set the user ID and username in the context
 		c.Set("userID", user.ID)
-		c.Set("username", user.Username)
 		c.Set("claims", claims)
 
 		c.Next()

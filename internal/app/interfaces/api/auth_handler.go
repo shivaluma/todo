@@ -8,11 +8,12 @@ import (
 	"github.com/sh1ro/todo-api/pkg/validator"
 )
 
-// AuthHandler handles authentication requests
+// AuthHandler handles authentication related requests
 type AuthHandler struct {
 	BaseHandler
 	registerUserHandler *command.RegisterUserHandler
 	loginUserHandler    *command.LoginUserHandler
+	getUserHandler      *command.GetUserHandler
 	validator           *validator.Validator
 }
 
@@ -20,6 +21,7 @@ type AuthHandler struct {
 func NewAuthHandler(
 	registerUserHandler *command.RegisterUserHandler,
 	loginUserHandler *command.LoginUserHandler,
+	getUserHandler *command.GetUserHandler,
 	validator *validator.Validator,
 	logger *logger.Logger,
 ) *AuthHandler {
@@ -53,20 +55,20 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	user, err := h.registerUserHandler.Handle(c.Request.Context(), cmd)
 	if err != nil {
 		log.Error("Failed to register user", "error", err)
-		response.RespondWithInternalError(c, err.Error())
+		response.RespondWithBadRequest(c, err.Error())
 		return
 	}
 
 	// Create a user response struct
 	type UserResponse struct {
 		ID       string `json:"id"`
-		Username string `json:"username"`
+		Fullname string `json:"fullname"`
 		Email    string `json:"email"`
 	}
 
 	userData := UserResponse{
 		ID:       user.ID.String(),
-		Username: user.Username,
+		Fullname: user.Fullname,
 		Email:    user.Email,
 	}
 
@@ -112,4 +114,40 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Use the generic response helper for type safety
 	response.RespondWithGenericOK(c, "Login successful", loginResponse)
+}
+
+// Me returns the current user
+func (h *AuthHandler) Me(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		response.RespondWithUnauthorized(c, "Unauthorized")
+		return
+	}
+
+	// Get request-specific logger
+	log := h.GetLogger(c)
+
+	user, err := h.getUserHandler.Handle(c.Request.Context(), command.GetUserCommand{
+		UserID: userID.(string),
+	})
+	if err != nil {
+		log.Error("Failed to get user", "error", err)
+		response.RespondWithUnauthorized(c, "Failed to get user")
+		return
+	}
+
+	// Create a user response struct
+	type UserResponse struct {
+		ID       string `json:"id"`
+		Fullname string `json:"fullname"`
+		Email    string `json:"email"`
+	}
+
+	userData := UserResponse{
+		ID:       user.ID.String(),
+		Fullname: user.Fullname,
+		Email:    user.Email,
+	}
+
+	response.RespondWithGenericOK(c, "User retrieved successfully", userData)
 }

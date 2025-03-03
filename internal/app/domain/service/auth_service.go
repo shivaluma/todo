@@ -23,7 +23,7 @@ type AuthService struct {
 // JWTClaims represents the claims in a JWT token
 type JWTClaims struct {
 	UserID   string `json:"user_id"`
-	Username string `json:"username"`
+	Fullname string `json:"fullname"`
 	jwt.RegisteredClaims
 }
 
@@ -38,20 +38,20 @@ func NewAuthService(userRepo repository.UserRepository, logger *logger.Logger, j
 }
 
 // Register registers a new user
-func (s *AuthService) Register(ctx context.Context, username, email, password string) (*model.User, error) {
+func (s *AuthService) Register(ctx context.Context, fullname, email, password string) (*model.User, error) {
 	// Check if user already exists
-	exists, err := s.userRepo.Exists(ctx, email, username)
+	exists, err := s.userRepo.Exists(ctx, email)
 	if err != nil {
 		s.logger.Error("Failed to check if user exists", "error", err)
 		return nil, err
 	}
 
 	if exists {
-		return nil, errors.New("user with this email or username already exists")
+		return nil, errors.New("user with this email already exists")
 	}
 
 	// Create new user
-	user, err := model.NewUser(username, email, password)
+	user, err := model.NewUser(fullname, email, password)
 	if err != nil {
 		s.logger.Error("Failed to create user", "error", err)
 		return nil, err
@@ -67,21 +67,17 @@ func (s *AuthService) Register(ctx context.Context, username, email, password st
 }
 
 // Login authenticates a user and returns a JWT token
-func (s *AuthService) Login(ctx context.Context, usernameOrEmail, password string) (string, error) {
-	// Try to find user by email
-	user, err := s.userRepo.GetByEmail(ctx, usernameOrEmail)
+func (s *AuthService) Login(ctx context.Context, email, password string) (string, error) {
+	// Find user by email
+	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
-		// If not found by email, try by username
-		user, err = s.userRepo.GetByUsername(ctx, usernameOrEmail)
-		if err != nil {
-			s.logger.Error("User not found", "usernameOrEmail", usernameOrEmail)
-			return "", errors.New("invalid credentials")
-		}
+		s.logger.Error("User not found", "email", email)
+		return "", errors.New("invalid credentials")
 	}
 
 	// Check password
 	if !user.CheckPassword(password) {
-		s.logger.Error("Invalid password", "usernameOrEmail", usernameOrEmail)
+		s.logger.Error("Invalid password", "email", email)
 		return "", errors.New("invalid credentials")
 	}
 
@@ -101,7 +97,7 @@ func (s *AuthService) GenerateToken(user *model.User) (string, error) {
 
 	claims := &JWTClaims{
 		UserID:   user.ID.String(),
-		Username: user.Username,
+		Fullname: user.Fullname,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -147,6 +143,20 @@ func (s *AuthService) GetUserFromToken(ctx context.Context, tokenString string) 
 	}
 
 	userID, err := uuid.Parse(claims.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (s *AuthService) GetUserFromId(ctx context.Context, id string) (*model.User, error) {
+	userID, err := uuid.Parse(id)
 	if err != nil {
 		return nil, err
 	}

@@ -39,6 +39,7 @@ func RegisterRoutes(router *gin.RouterGroup, db *persistence.PostgresDB, log *lo
 	// Create command handlers
 	registerUserHandler := command.NewRegisterUserHandler(authService, log)
 	loginUserHandler := command.NewLoginUserHandler(authService, log)
+	getUserHandler := command.NewGetUserHandler(authService, log)
 	createTodoHandler := command.NewCreateTodoHandler(todoService, log)
 	updateTodoHandler := command.NewUpdateTodoHandler(todoService, log)
 	deleteTodoHandler := command.NewDeleteTodoHandler(todoService, log)
@@ -49,7 +50,7 @@ func RegisterRoutes(router *gin.RouterGroup, db *persistence.PostgresDB, log *lo
 	getOverdueTodosHandler := query.NewGetOverdueTodosHandler(todoService, log)
 
 	// Create API handlers
-	authHandler := NewAuthHandler(registerUserHandler, loginUserHandler, validator, log)
+	authHandler := NewAuthHandler(registerUserHandler, loginUserHandler, getUserHandler, validator, log)
 	todoHandler := NewTodoHandler(
 		createTodoHandler,
 		updateTodoHandler,

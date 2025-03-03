@@ -13,7 +13,8 @@ import (
 // TokenClaims represents the claims in a token
 type TokenClaims struct {
 	UserID   string `json:"user_id"`
-	Username string `json:"username"`
+	Fullname string `json:"fullname"`
+	Email    string `json:"email"`
 	jwt.RegisteredClaims
 }
 
@@ -39,7 +40,8 @@ func (s *TokenService) GenerateToken(user *model.User) (string, error) {
 
 	claims := &TokenClaims{
 		UserID:   user.ID.String(),
-		Username: user.Username,
+		Fullname: user.Fullname,
+		Email:    user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

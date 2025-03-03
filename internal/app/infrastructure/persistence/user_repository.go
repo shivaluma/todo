@@ -27,13 +27,13 @@ func NewPostgresUserRepository(db *PostgresDB) repository.UserRepository {
 // Create creates a new user
 func (r *PostgresUserRepository) Create(ctx context.Context, user *model.User) error {
 	query := `
-		INSERT INTO users (id, username, email, password_hash, created_at, updated_at)
+		INSERT INTO users (id, fullname, email, password_hash, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`
 
 	_, err := r.db.Exec(query,
 		user.ID,
-		user.Username,
+		user.Fullname,
 		user.Email,
 		user.PasswordHash,
 		user.CreatedAt,
@@ -50,7 +50,7 @@ func (r *PostgresUserRepository) Create(ctx context.Context, user *model.User) e
 // GetByID gets a user by ID
 func (r *PostgresUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, created_at, updated_at
+		SELECT id, fullname, email, password_hash, created_at, updated_at
 		FROM users
 		WHERE id = $1
 	`
@@ -58,7 +58,7 @@ func (r *PostgresUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*mo
 	var user model.User
 	err := r.db.QueryRow(query, id).Scan(
 		&user.ID,
-		&user.Username,
+		&user.Fullname,
 		&user.Email,
 		&user.PasswordHash,
 		&user.CreatedAt,
@@ -78,7 +78,7 @@ func (r *PostgresUserRepository) GetByID(ctx context.Context, id uuid.UUID) (*mo
 // GetByEmail gets a user by email
 func (r *PostgresUserRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	query := `
-		SELECT id, username, email, password_hash, created_at, updated_at
+		SELECT id, fullname, email, password_hash, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`
@@ -86,7 +86,7 @@ func (r *PostgresUserRepository) GetByEmail(ctx context.Context, email string) (
 	var user model.User
 	err := r.db.QueryRow(query, email).Scan(
 		&user.ID,
-		&user.Username,
+		&user.Fullname,
 		&user.Email,
 		&user.PasswordHash,
 		&user.CreatedAt,
@@ -103,44 +103,16 @@ func (r *PostgresUserRepository) GetByEmail(ctx context.Context, email string) (
 	return &user, nil
 }
 
-// GetByUsername gets a user by username
-func (r *PostgresUserRepository) GetByUsername(ctx context.Context, username string) (*model.User, error) {
-	query := `
-		SELECT id, username, email, password_hash, created_at, updated_at
-		FROM users
-		WHERE username = $1
-	`
-
-	var user model.User
-	err := r.db.QueryRow(query, username).Scan(
-		&user.ID,
-		&user.Username,
-		&user.Email,
-		&user.PasswordHash,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-	)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("user not found")
-		}
-		return nil, fmt.Errorf("failed to get user by username: %w", err)
-	}
-
-	return &user, nil
-}
-
 // Update updates a user
 func (r *PostgresUserRepository) Update(ctx context.Context, user *model.User) error {
 	query := `
 		UPDATE users
-		SET username = $1, email = $2, password_hash = $3, updated_at = $4
+		SET fullname = $1, email = $2, password_hash = $3, updated_at = $4
 		WHERE id = $5
 	`
 
 	_, err := r.db.Exec(query,
-		user.Username,
+		user.Fullname,
 		user.Email,
 		user.PasswordHash,
 		time.Now().UTC(),
@@ -169,17 +141,17 @@ func (r *PostgresUserRepository) Delete(ctx context.Context, id uuid.UUID) error
 	return nil
 }
 
-// Exists checks if a user exists by email or username
-func (r *PostgresUserRepository) Exists(ctx context.Context, email, username string) (bool, error) {
+// Exists checks if a user exists by email
+func (r *PostgresUserRepository) Exists(ctx context.Context, email string) (bool, error) {
 	query := `
 		SELECT EXISTS(
 			SELECT 1 FROM users
-			WHERE email = $1 OR username = $2
+			WHERE email = $1
 		)
 	`
 
 	var exists bool
-	err := r.db.QueryRow(query, email, username).Scan(&exists)
+	err := r.db.QueryRow(query, email).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("failed to check if user exists: %w", err)
 	}
