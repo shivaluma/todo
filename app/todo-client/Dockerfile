@@ -26,4 +26,4 @@ EXPOSE 3333
 ENV PORT=3333
 
 ENV HOSTNAME="0.0.0.0"
-CMD ["pnpm", "run", "start"]
+CMD ["npm", "run", "start"]
