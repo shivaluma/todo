@@ -244,7 +244,7 @@ services:
     ports:
       - "3333:3333"
     volumes:
-      - static-files:/app/.next/static/
+      - static-files:/app/.next/
     environment:
       - API_URL=https://todo.shiro.fit/api/v1
       - NEXT_PUBLIC_API_URL=https://todo.shiro.fit/api/v1
