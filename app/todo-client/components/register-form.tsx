@@ -29,11 +29,11 @@ import {
 import { Input } from "@/components/ui/input"
 
 const registerSchema = z.object({
-  username: z
+  fullname: z
     .string()
     .regex(
       /^[a-zA-Z0-9_-]{3,30}$/,
-      "Username must be 3-30 characters and can only contain letters, numbers, underscores, and hyphens"
+      "Full name must be 3-30 characters and can only contain letters, numbers, underscores, and hyphens"
     ),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -52,7 +52,7 @@ export function RegisterForm({
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      username: "",
+      fullname: "",
       email: "",
       password: "",
     },
@@ -93,24 +93,6 @@ export function RegisterForm({
               <div className="grid gap-6">
                 <FormField
                   control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Username</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="username"
-                          disabled={isPending}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
@@ -126,6 +108,25 @@ export function RegisterForm({
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="fullname"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="John Doe"
+                          disabled={isPending}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="password"
@@ -137,7 +138,7 @@ export function RegisterForm({
                           {...field}
                           type="password"
                           autoComplete="new-password"
-                          placeholder="********"
+                          placeholder="Enter your password"
                           disabled={isPending}
                         />
                       </FormControl>

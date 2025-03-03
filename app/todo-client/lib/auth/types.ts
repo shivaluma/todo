@@ -43,7 +43,7 @@ export interface AuthState {
  * Login credentials interface
  */
 export interface LoginCredentials {
-  username_or_email: string
+  email: string
   password: string
 }
 
@@ -51,7 +51,7 @@ export interface LoginCredentials {
  * Registration credentials interface
  */
 export interface RegisterCredentials {
-  username: string
+  fullname: string
   email: string
   password: string
 }

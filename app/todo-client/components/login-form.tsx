@@ -29,17 +29,7 @@ import {
 import { Input } from "@/components/ui/input"
 
 const loginSchema = z.object({
-  username_or_email: z
-    .string()
-    .email("Please enter a valid email address")
-    .or(
-      z
-        .string()
-        .regex(
-          /^[a-zA-Z0-9_-]{3,30}$/,
-          "Username must be 3-30 characters and can only contain letters, numbers, underscores, and hyphens"
-        )
-    ),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 })
 
@@ -56,7 +46,7 @@ export function LoginForm({
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username_or_email: "",
+      email: "",
       password: "",
     },
   })
@@ -99,10 +89,10 @@ export function LoginForm({
               <div className="grid gap-6">
                 <FormField
                   control={form.control}
-                  name="username_or_email"
+                  name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Username or Email</FormLabel>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -127,7 +117,7 @@ export function LoginForm({
                           type="password"
                           autoComplete="off"
                           disabled={isPending}
-                          placeholder="********"
+                          placeholder="Enter your password"
                         />
                       </FormControl>
                       <FormMessage />
