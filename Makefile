@@ -70,6 +70,10 @@ dev:
 	}
 	air
 
+# Run the nextjs application
+dev-fe:
+	cd app/todo-client && pnpm run dev
+
 # Help command
 help:
 	@echo "Available commands:"
