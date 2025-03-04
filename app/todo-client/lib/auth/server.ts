@@ -94,7 +94,7 @@ export async function protectServer(config?: RouteConfig) {
 
   // Check authorization
   if (config?.roles && !hasRequiredRoles(token, config.roles)) {
-    redirect("/")
+    redirect("/dashboard")
   }
 
   return token

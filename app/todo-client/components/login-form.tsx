@@ -55,7 +55,7 @@ export function LoginForm({
     startTransition(async () => {
       try {
         await login(data)
-        router.push("/")
+        router.push("/dashboard")
         toast.success("You have been logged in successfully.")
       } catch (error) {
         console.log({ error })

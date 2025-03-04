@@ -7,6 +7,9 @@ const config = {
       og_image: "/og-todo.png",
     },
   },
+  api: {
+    url: process.env.NEXT_PUBLIC_API_URL,
+  },
 }
 
 export default config

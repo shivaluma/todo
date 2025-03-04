@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro, Geist_Mono } from "next/font/google"
 
 import "@/app/globals.css"
 
+import { preconnect } from "react-dom"
 import { Toaster } from "sonner"
 
 import { RequestIdDialog } from "@/components/api-error-dialog"
@@ -55,6 +56,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
+      <head>
+        <link rel="preconnect" href={config.api.url} />
+      </head>
       <body
         className={`${beVietnamPro.className} ${geistMono.variable} antialiased overflow-x-hidden`}
       >
