@@ -16,9 +16,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: >
-      /bin/sh -c "
-        sleep 10 && /migrate"
     restart: "no"
     networks:
       - todo-network

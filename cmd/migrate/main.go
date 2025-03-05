@@ -25,9 +25,6 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
     
-    // Sleep for 10 seconds
-    time.Sleep(10 * time.Second)
-
 	// Construct database URL
 	dbURL := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		cfg.Database.User,
