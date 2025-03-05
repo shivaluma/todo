@@ -32,15 +32,8 @@ export function useAuth(requiredRoles?: UserRole[]) {
     }
 
     // If authenticated but missing required roles, redirect to home
-    if (status === "authenticated" && requiredRoles?.length) {
-      const userRoles = session?.user?.roles || []
-      const hasRequiredRole = requiredRoles.some((role) =>
-        userRoles.includes(role.toString())
-      )
-
-      if (!hasRequiredRole) {
-        router.push("/")
-      }
+    if (status === "authenticated") {
+      router.push("/dashboard")
     }
   }, [status, session, requiredRoles, router])
 
