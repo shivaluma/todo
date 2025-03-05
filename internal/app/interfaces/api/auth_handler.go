@@ -71,6 +71,7 @@ func (h *AuthHandler) Login(c echo.Context) error {
 
 	// Get request-specific logger
 	log := h.GetLogger(c)
+    
 
 	// Validate the command
 	if errors := h.validator.Validate(cmd); errors != nil {

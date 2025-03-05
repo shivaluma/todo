@@ -52,6 +52,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     -   Updated authentication flow to use email as the unique identifier
     -   Updated JWT tokens to include fullname instead of username
     -   Updated API endpoints to use fullname in requests and responses
+-   Standardized request ID handling across the application
+    -   Updated all middleware to use WithRequestID method consistently
+    -   Modified BaseHandler.GetLogger to use FromContext for automatic request ID inclusion
+    -   Updated auth middleware to use FromContext for consistent request ID handling
+    -   Ensured all handlers use the same approach to access request-specific loggers
 
 ### Security
 
@@ -64,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Fixed DeleteTodo handler to use the correct field name (ID instead of TodoID)
 -   Fixed type errors in ListTodos handler related to TodoStatus and TodoPriority
 -   Fixed GetUserID method in BaseHandler to use Echo's Context.Get correctly
+-   Fixed inconsistent request ID handling in middleware and handlers
 
 ### Migration Notes
 

@@ -24,7 +24,7 @@ func RequestID(log *logger.Logger) echo.MiddlewareFunc {
 			c.Response().Header().Set(echo.HeaderXRequestID, requestID)
 
 			// Create a request-specific logger with request ID
-			reqLogger := log.WithField("request_id", requestID)
+			reqLogger := log.WithRequestID(requestID)
 
 			// Store logger in context for handlers to use
 			c.Set("logger", reqLogger)

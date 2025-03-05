@@ -52,13 +52,8 @@ func NewAuthMiddleware(authService *service.AuthService, logger *logger.Logger) 
 func (m *AuthMiddleware) Authenticate() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Get request-specific logger if available
-			var log *logger.Logger
-			if l, ok := c.Get("logger").(*logger.Logger); ok {
-				log = l
-			} else {
-				log = m.logger
-			}
+			// Get request-specific logger with request ID using FromContext
+			log := logger.FromContext(c)
 
 			authHeader := c.Request().Header.Get("Authorization")
 			if authHeader == "" {

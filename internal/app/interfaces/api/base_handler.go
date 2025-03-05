@@ -21,10 +21,8 @@ func NewBaseHandler(logger *logger.Logger) BaseHandler {
 // If a request-specific logger is available in the context, it will be used
 // Otherwise, the default logger will be used
 func (h *BaseHandler) GetLogger(c echo.Context) *logger.Logger {
-	if l, ok := c.Get("logger").(*logger.Logger); ok {
-		return l
-	}
-	return h.logger
+	// Use FromContext to get a logger with request ID
+	return logger.FromContext(c)
 }
 
 // GetRequestID returns the request ID for the current request
