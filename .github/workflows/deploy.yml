@@ -22,5 +22,4 @@ jobs:
             cd ~/todo
             git pull origin main
             docker compose -f docker-compose.prod.full.yml down
-            source .env.prod
             docker compose -f docker-compose.prod.full.yml up -d --build
