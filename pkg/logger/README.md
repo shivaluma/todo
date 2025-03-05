@@ -9,7 +9,7 @@ The logger package offers:
 1. Pre-configured logger instance with common settings
 2. Support for different log levels (debug, info, warn, error, fatal)
 3. Structured logging with key-value pairs
-4. HTTP request logging middleware for Gin
+4. HTTP request logging middleware for Echo
 5. Context-aware logging with request IDs
 
 ## Usage
@@ -23,27 +23,36 @@ import (
 
 func main() {
     // Initialize the logger
-    logger.Init("info", false)
+    log := logger.NewLogger("info", "console")
 
     // Log messages at different levels
-    logger.Debug("Debug message")
-    logger.Info("Info message")
-    logger.Warn("Warning message")
-    logger.Error("Error message")
+    log.Debug("Debug message")
+    log.Info("Info message")
+    log.Warn("Warning message")
+    log.Error("Error message")
 
     // Log with additional fields
-    logger.Info("User created",
-        logger.String("user_id", "123"),
-        logger.String("username", "johndoe"),
-        logger.Int("age", 30),
+    log.Info("User created",
+        "user_id", "123",
+        "username", "johndoe",
+        "age", 30,
     )
 
-    // Log errors with stack traces
+    // Log with a single field
+    log.WithField("request_id", "abc123").Info("Processing request")
+
+    // Log with multiple fields
+    log.WithFields(map[string]interface{}{
+        "user_id": "123",
+        "action": "login",
+    }).Info("User logged in")
+
+    // Log errors
     err := someFunction()
     if err != nil {
-        logger.Error("Failed to execute function",
-            logger.Error(err),
-            logger.String("function", "someFunction"),
+        log.Error("Failed to execute function",
+            "error", err,
+            "function", "someFunction",
         )
     }
 }
@@ -53,40 +62,79 @@ func main() {
 
 ```go
 import (
-    "github.com/gin-gonic/gin"
+    "github.com/labstack/echo/v4"
     "github.com/sh1ro/todo-api/pkg/logger"
+    customMiddleware "github.com/sh1ro/todo-api/internal/app/interfaces/middleware"
 )
 
 func main() {
-    router := gin.Default()
+    // Initialize the logger
+    log := logger.NewLogger("info", "console")
+
+    // Create Echo instance
+    e := echo.New()
 
     // Register the logger middleware
-    router.Use(logger.GinMiddleware())
+    e.Use(customMiddleware.Logger(log))
 
     // ... rest of your application setup
 }
 ```
 
-### Context-Aware Logging
+### Context-Aware Logging with Request IDs
+
+The logger provides two ways to add request IDs to your logs:
+
+#### Method 1: Using FromContext
 
 ```go
 import (
-    "github.com/gin-gonic/gin"
+    "github.com/labstack/echo/v4"
     "github.com/sh1ro/todo-api/pkg/logger"
 )
 
-func Handler(c *gin.Context) {
-    // Get logger with request context
+func Handler(c echo.Context) error {
+    // Get logger with request ID automatically extracted from context
     log := logger.FromContext(c)
 
-    // Log with request ID and other context information
+    // Log with request ID automatically included
     log.Info("Processing request")
 
     // ... process the request
 
     log.Info("Request processed successfully",
-        logger.String("result", "success"),
+        "result", "success",
     )
+
+    return nil
+}
+```
+
+#### Method 2: Using WithRequestID
+
+```go
+import (
+    "github.com/labstack/echo/v4"
+    "github.com/sh1ro/todo-api/pkg/logger"
+)
+
+func Handler(c echo.Context) error {
+    // Get request ID from header
+    requestID := c.Response().Header().Get(echo.HeaderXRequestID)
+
+    // Create logger with request ID
+    log := logger.NewLogger("info", "console").WithRequestID(requestID)
+
+    // Log with request ID
+    log.Info("Processing request")
+
+    // ... process the request
+
+    log.Info("Request processed successfully",
+        "result", "success",
+    )
+
+    return nil
 }
 ```
 
@@ -94,19 +142,22 @@ func Handler(c *gin.Context) {
 
 The logger can be configured with:
 
-1. Log level (debug, info, warn, error, fatal)
-2. Development mode (enables more verbose logging)
-3. Output destination (stdout, file, or both)
-4. Log format (JSON or console)
+1. Log level (debug, info, warn, error)
+2. Log format (json or console)
+3. Output destination (can be changed with WithOutput)
 
 Example configuration:
 
 ```go
-// Initialize with info level in production mode
-logger.Init("info", false)
+// Initialize with info level and console format
+log := logger.NewLogger("info", "console")
 
-// Initialize with debug level in development mode
-logger.Init("debug", true)
+// Initialize with debug level and JSON format
+log := logger.NewLogger("debug", "json")
+
+// Change output to a file
+file, _ := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+log = log.WithOutput(file)
 ```
 
 ## Available Log Levels
@@ -117,26 +168,22 @@ logger.Init("debug", true)
 -   `Error` - Due to a more serious problem, the software has not been able to perform a function
 -   `Fatal` - Very severe error events that will presumably lead the application to abort
 
-## Field Helpers
+## Implementation Details
 
-The package provides helper functions for adding structured fields to log messages:
+Under the hood, this logger uses Uber's zap logging library, which provides:
 
--   `String(key, value)` - Add a string field
--   `Int(key, value)` - Add an integer field
--   `Bool(key, value)` - Add a boolean field
--   `Float64(key, value)` - Add a float field
--   `Error(err)` - Add an error field with stack trace
--   `Any(key, value)` - Add a field of any type
+1. Extremely fast, structured logging
+2. Type-safe field additions
+3. Leveled logging
+4. Sampling capabilities
+5. Hooks for extending functionality
 
-## Middleware Features
+The implementation uses both the structured Logger and the more flexible SugaredLogger from zap to provide a balance of performance and usability.
 
-The Gin middleware automatically logs:
+### Request ID Handling
 
-1. Request method and path
-2. Response status code
-3. Request duration
-4. Client IP address
-5. User agent
-6. Request ID (generated or from X-Request-ID header)
-7. Request body size
-8. Response body size
+Request IDs are handled consistently throughout the application:
+
+1. The `WithRequestID` method adds a request ID with the standard key "request_id"
+2. The `FromContext` method automatically extracts the request ID from the Echo context
+3. Request IDs are preserved when using methods like `WithField` or `WithFields`

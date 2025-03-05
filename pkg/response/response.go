@@ -140,3 +140,8 @@ func (e ErrorResponse) WithErrors(errors map[string]string) ErrorResponse {
 	e.Errors = errors
 	return e
 }
+
+// Helper function to get current time (extracted for testing)
+func timeNow() time.Time {
+	return time.Now().UTC()
+}

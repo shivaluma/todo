@@ -120,3 +120,13 @@ func (t *Todo) IsOverdue() bool {
 	}
 	return t.Status != TodoStatusCompleted && t.Status != TodoStatusCancelled && t.DueDate.Before(time.Now().UTC())
 }
+
+// TodoStatusPtr converts a TodoStatus to a pointer
+func TodoStatusPtr(status TodoStatus) *TodoStatus {
+	return &status
+}
+
+// TodoPriorityPtr converts a TodoPriority to a pointer
+func TodoPriorityPtr(priority TodoPriority) *TodoPriority {
+	return &priority
+}

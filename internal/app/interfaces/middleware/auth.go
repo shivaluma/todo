@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/internal/app/domain/service"
 	"github.com/sh1ro/todo-api/pkg/logger"
 )
@@ -23,13 +23,15 @@ const (
 )
 
 // GetUserID retrieves the user ID from the context
-func GetUserID(c *gin.Context) (interface{}, bool) {
-	return c.Get(string(UserIDKey))
+func GetUserID(c echo.Context) (interface{}, bool) {
+	userID := c.Get(string(UserIDKey))
+	return userID, userID != nil
 }
 
 // GetClaims retrieves the JWT claims from the context
-func GetClaims(c *gin.Context) (interface{}, bool) {
-	return c.Get(string(ClaimsKey))
+func GetClaims(c echo.Context) (interface{}, bool) {
+	claims := c.Get(string(ClaimsKey))
+	return claims, claims != nil
 }
 
 // AuthMiddleware is a middleware that checks for a valid JWT token
@@ -47,56 +49,53 @@ func NewAuthMiddleware(authService *service.AuthService, logger *logger.Logger) 
 }
 
 // Authenticate is a middleware that checks for a valid JWT token
-func (m *AuthMiddleware) Authenticate() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Get request-specific logger if available
-		var log *logger.Logger
-		if l, exists := c.Get("logger"); exists {
-			log = l.(*logger.Logger)
-		} else {
-			log = m.logger
-		}
-
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
-			return
-		}
-
-		// Check if the Authorization header has the correct format
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header format must be Bearer {token}"})
-			return
-		}
-
-		// Get the token
-		tokenString := parts[1]
-
-		// Validate the token
-		claims, err := m.authService.ValidateToken(tokenString)
-		if err != nil {
-			log.Error("Invalid token", "error", err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
-			return
-		}
-
-		// Get the user from the token
-		user, err := m.authService.GetUserFromToken(c.Request.Context(), tokenString)
-		if err != nil {
-			if errors.Is(err, errors.New("user not found")) {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
-				return
+func (m *AuthMiddleware) Authenticate() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Get request-specific logger if available
+			var log *logger.Logger
+			if l, ok := c.Get("logger").(*logger.Logger); ok {
+				log = l
+			} else {
+				log = m.logger
 			}
-			log.Error("Failed to get user from token", "error", err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-			return
+
+			authHeader := c.Request().Header.Get("Authorization")
+			if authHeader == "" {
+				return echo.NewHTTPError(http.StatusUnauthorized, "Authorization header is required")
+			}
+
+			// Check if the Authorization header has the correct format
+			parts := strings.Split(authHeader, " ")
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				return echo.NewHTTPError(http.StatusUnauthorized, "Authorization header format must be Bearer {token}")
+			}
+
+			// Get the token
+			tokenString := parts[1]
+
+			// Validate the token
+			claims, err := m.authService.ValidateToken(tokenString)
+			if err != nil {
+				log.Error("Invalid token", "error", err)
+				return echo.NewHTTPError(http.StatusUnauthorized, "Invalid or expired token")
+			}
+
+			// Get the user from the token
+			user, err := m.authService.GetUserFromToken(c.Request().Context(), tokenString)
+			if err != nil {
+				if errors.Is(err, errors.New("user not found")) {
+					return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
+				}
+				log.Error("Failed to get user from token", "error", err)
+				return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
+			}
+
+			// Set the user ID and claims in the context
+			c.Set(string(UserIDKey), user.ID)
+			c.Set(string(ClaimsKey), claims)
+
+			return next(c)
 		}
-
-		// Set the user ID and claims in the context
-		c.Set(string(UserIDKey), user.ID)
-		c.Set(string(ClaimsKey), claims)
-
-		c.Next()
 	}
 }

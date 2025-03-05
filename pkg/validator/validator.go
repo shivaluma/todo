@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	en_translations "github.com/go-playground/validator/v10/translations/en"
+	"github.com/labstack/echo/v4"
 )
 
 // Validator is a wrapper around validator.Validate
@@ -26,14 +26,8 @@ type ValidationError struct {
 
 // NewValidator creates a new validator
 func NewValidator() *Validator {
-	// Always create a new validator instead of trying to reuse Gin's
+	// Create a new validator
 	validate := validator.New()
-
-	// Register the validator with gin but disable validation during binding
-	binding.Validator = &defaultValidator{
-		validate: validate,
-		disableValidation: true,
-	}
 
 	// Register custom validation tags
 	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
@@ -59,45 +53,30 @@ func NewValidator() *Validator {
 	}
 }
 
-// defaultValidator is a copy of gin's defaultValidator to allow us to replace it
-type defaultValidator struct {
-	validate *validator.Validate
-	disableValidation bool
+// EchoValidator implements echo.Validator interface
+type EchoValidator struct {
+	validator *Validator
 }
 
-// ValidateStruct implements the gin.StructValidator interface
-func (v *defaultValidator) ValidateStruct(obj interface{}) error {
-	if obj == nil {
-		return nil
+// NewEchoValidator creates a new EchoValidator
+func NewEchoValidator(validator *Validator) *EchoValidator {
+	return &EchoValidator{
+		validator: validator,
 	}
-
-	if v.disableValidation {
-		return nil
-	}
-
-	value := reflect.ValueOf(obj)
-	if value.Kind() == reflect.Ptr && !value.IsNil() {
-		value = value.Elem()
-	}
-
-	if value.Kind() != reflect.Struct {
-		return nil
-	}
-
-	return v.validate.Struct(obj)
 }
 
-// Engine returns the underlying validator engine
-func (v *defaultValidator) Engine() interface{} {
-	return v.validate
+// Validate implements echo.Validator interface
+func (v *EchoValidator) Validate(i interface{}) error {
+	errors := v.validator.Validate(i)
+	if len(errors) > 0 {
+		return echo.NewHTTPError(400, errors)
+	}
+	return nil
 }
 
 // Validate validates the given struct and returns validation errors
 func (v *Validator) Validate(i interface{}) []ValidationError {
 	err := v.validate.Struct(i)
-
-	// Add debug logging in development environments only
-	// fmt.Printf("Validation error: %v\n", err)
 
 	if err == nil {
 		return nil
@@ -107,17 +86,12 @@ func (v *Validator) Validate(i interface{}) []ValidationError {
 	validationErrors, ok := err.(validator.ValidationErrors)
 	if !ok {
 		// Handle case where type assertion fails
-		// fmt.Printf("Type assertion failed for validation errors\n")
 		return []ValidationError{
 			{Field: "unknown", Message: "Invalid input data"},
 		}
 	}
 
-	// fmt.Printf("Number of validation errors: %d\n", len(validationErrors))
-
 	for _, err := range validationErrors {
-		// fmt.Printf("Field: %s, Tag: %s, Param: %s\n", err.Field(), err.Tag(), err.Param())
-
 		// Use the JSON tag name directly
 		field := err.Field()
 
@@ -126,10 +100,6 @@ func (v *Validator) Validate(i interface{}) []ValidationError {
 			Message: err.Translate(v.trans),
 		})
 	}
-
-	// if len(errors) == 0 {
-	//    fmt.Printf("No errors were added to the errors slice\n")
-	// }
 
 	return errors
 }

@@ -10,11 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/sh1ro/todo-api/internal/app/infrastructure/persistence"
 	"github.com/sh1ro/todo-api/internal/app/interfaces/api"
-	"github.com/sh1ro/todo-api/internal/app/interfaces/middleware"
+	customMiddleware "github.com/sh1ro/todo-api/internal/app/interfaces/middleware"
 	"github.com/sh1ro/todo-api/pkg/config"
 	"github.com/sh1ro/todo-api/pkg/logger"
 )
@@ -35,11 +36,6 @@ func main() {
 		log.Fatal("Failed to load configuration", "error", err)
 	}
 
-	// Set Gin mode
-	if cfg.Env == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
 	// Initialize database connection
 	db, err := persistence.NewPostgresDB(cfg.Database)
 	if err != nil {
@@ -47,13 +43,18 @@ func main() {
 	}
 	defer db.Close()
 
-	// Create router
-	router := gin.New()
-	router.Use(gin.Recovery())
-
-	router.Use(middleware.RequestID(log))
-	router.Use(middleware.Logger(log))
-	router.Use(middleware.CORS(cfg.CORS))
+	// Create Echo instance
+	e := echo.New()
+	
+	// Configure Echo
+	e.HideBanner = true
+	e.HidePort = true
+	
+	// Add middleware
+	e.Use(middleware.Recover())
+	e.Use(customMiddleware.RequestID(log))
+	e.Use(customMiddleware.Logger(log))
+	e.Use(customMiddleware.CORS(cfg.CORS))
 
 	// Setup API routes
 	apiVersion := os.Getenv("API_VERSION")
@@ -61,19 +62,19 @@ func main() {
 		apiVersion = "v1"
 	}
 
-	apiGroup := router.Group(fmt.Sprintf("/api/%s", apiVersion))
+	apiGroup := e.Group(fmt.Sprintf("/api/%s", apiVersion))
 	api.RegisterRoutes(apiGroup, db, log, cfg)
 
 	// Start server
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Port),
-		Handler: router,
+		Handler: e,
 	}
 
 	// Graceful shutdown
 	go func() {
 		log.Info("Server starting", "port", cfg.Port)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := e.StartServer(srv); err != nil && err != http.ErrServerClosed {
 			log.Fatal("Failed to start server", "error", err)
 		}
 	}()
@@ -89,7 +90,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := e.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown", "error", err)
 	}
 

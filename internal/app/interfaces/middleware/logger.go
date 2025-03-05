@@ -3,59 +3,67 @@ package middleware
 import (
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/pkg/logger"
 )
 
 // Logger returns a middleware that logs request information
-func Logger(log *logger.Logger) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Start timer
-		start := time.Now()
-		path := c.Request.URL.Path
-		raw := c.Request.URL.RawQuery
+func Logger(log *logger.Logger) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			start := time.Now()
 
-		// Process request
-		c.Next()
+			// Get request ID from context
+			requestID := c.Response().Header().Get(echo.HeaderXRequestID)
 
-		// Stop timer
-		end := time.Now()
-		latency := end.Sub(start)
+			// Create a request-specific logger with request ID
+			reqLogger := log.WithRequestID(requestID)
 
-		clientIP := c.ClientIP()
-		method := c.Request.Method
-		statusCode := c.Writer.Status()
-		errorMessage := c.Errors.ByType(gin.ErrorTypePrivate).String()
+			// Store logger in context for handlers to use
+			c.Set("logger", reqLogger)
 
-		if raw != "" {
-			path = path + "?" + raw
+			// Process request
+			err := next(c)
+			if err != nil {
+				c.Error(err)
+			}
+
+			// Log request details after completion
+			latency := time.Since(start)
+			status := c.Response().Status
+			method := c.Request().Method
+			path := c.Request().URL.Path
+			ip := c.RealIP()
+
+			// Log at appropriate level based on status code
+			switch {
+			case status >= 500:
+				reqLogger.Error("Request completed",
+					"status", status,
+					"method", method,
+					"path", path,
+					"ip", ip,
+					"latency", latency,
+				)
+			case status >= 400:
+				reqLogger.Warn("Request completed",
+					"status", status,
+					"method", method,
+					"path", path,
+					"ip", ip,
+					"latency", latency,
+				)
+			default:
+				reqLogger.Info("Request completed",
+					"status", status,
+					"method", method,
+					"path", path,
+					"ip", ip,
+					"latency", latency,
+				)
+			}
+
+			return err
 		}
-
-		// Get request ID from context if available
-		var requestID string
-		if id, exists := c.Get(string(RequestIDKey)); exists {
-			requestID = id.(string)
-		}
-
-		// Use the logger from context if available (with request ID)
-		var contextLogger *logger.Logger
-		if l, exists := c.Get("logger"); exists {
-			contextLogger = l.(*logger.Logger)
-		} else if requestID != "" {
-			// If we have a request ID but no logger in context, create one with the request ID
-			contextLogger = log.WithField("request_id", requestID)
-		} else {
-			contextLogger = log
-		}
-
-		// Log request details
-		contextLogger.Info("Request",
-			"status", statusCode,
-			"method", method,
-			"path", path,
-			"ip", clientIP,
-			"latency", latency,
-			"error", errorMessage,
-		)
 	}
 }

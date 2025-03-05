@@ -23,6 +23,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+-   Completed migration from Gin to Echo framework for better performance and maintainability
+    -   Refactored all handlers to use Echo's context and binding mechanisms
+    -   Updated middleware to use Echo's middleware system
+    -   Improved error handling with Echo's error handling capabilities
+    -   Enhanced response helpers to work with Echo's context
+    -   Simplified route registration with Echo's group system
+    -   Improved type safety with Echo's context methods
+    -   Better support for testing with Echo's testing utilities
+    -   Removed all Gin dependencies from the codebase
+    -   Updated validator, metrics, and response packages to use Echo
+-   Migrated logger package from Go's standard library slog to Uber's zap
+    -   Improved logging performance with zap's optimized implementation
+    -   Enhanced structured logging capabilities
+    -   Added support for both structured Logger and SugaredLogger
+    -   Maintained the same API for backward compatibility
+    -   Updated documentation with new examples
+    -   Added dedicated request ID support with WithRequestID method
+    -   Implemented FromContext method to easily extract loggers with request IDs
+    -   Updated logger middleware to use the new request ID functionality
 -   Updated Logger middleware to include request ID in all log entries
 -   Modified AuthHandler and TodoHandler to use request-specific logger
 -   Improved error handling with consistent request ID tracking
@@ -43,9 +62,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 -   Fixed validation in Register and Login handlers to properly validate all fields
 -   Fixed DeleteTodo handler to use the correct field name (ID instead of TodoID)
+-   Fixed type errors in ListTodos handler related to TodoStatus and TodoPriority
+-   Fixed GetUserID method in BaseHandler to use Echo's Context.Get correctly
 
 ### Migration Notes
 
 -   Existing usernames have been migrated to the fullname field
 -   Email is now the only unique identifier for users
 -   Login now requires email instead of username or email
+-   API clients need to be updated to work with Echo's response format
+-   Middleware order has been optimized for better performance

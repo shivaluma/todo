@@ -1,8 +1,7 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/sh1ro/todo-api/internal/app/interfaces/middleware"
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/pkg/logger"
 )
 
@@ -19,21 +18,25 @@ func NewBaseHandler(logger *logger.Logger) BaseHandler {
 }
 
 // GetLogger returns the logger for the current request
-func (h *BaseHandler) GetLogger(c *gin.Context) *logger.Logger {
-	// Get request-specific logger from context if available
-	if l, exists := c.Get("logger"); exists {
-		return l.(*logger.Logger)
+// If a request-specific logger is available in the context, it will be used
+// Otherwise, the default logger will be used
+func (h *BaseHandler) GetLogger(c echo.Context) *logger.Logger {
+	if l, ok := c.Get("logger").(*logger.Logger); ok {
+		return l
 	}
-
-	// Fall back to default logger
 	return h.logger
 }
 
-// GetRequestID returns the request ID from the current request
-func (h *BaseHandler) GetRequestID(c *gin.Context) string {
-	requestID, exists := middleware.GetRequestID(c)
-	if exists {
-		return requestID
+// GetRequestID returns the request ID for the current request
+func (h *BaseHandler) GetRequestID(c echo.Context) string {
+	return c.Response().Header().Get(echo.HeaderXRequestID)
+}
+
+// GetUserID returns the user ID from the context
+func (h *BaseHandler) GetUserID(c echo.Context) interface{} {
+	userID := c.Get("user_id")
+	if userID == nil {
+		return nil
 	}
-	return ""
+	return userID
 }

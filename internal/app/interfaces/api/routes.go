@@ -3,7 +3,7 @@ package api
 import (
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/internal/app/application/command"
 	"github.com/sh1ro/todo-api/internal/app/application/query"
 	"github.com/sh1ro/todo-api/internal/app/domain/service"
@@ -18,7 +18,7 @@ import (
 )
 
 // RegisterRoutes registers all routes for the API
-func RegisterRoutes(router *gin.RouterGroup, db *persistence.PostgresDB, log *logger.Logger, cfg *config.Config) {
+func RegisterRoutes(router *echo.Group, db *persistence.PostgresDB, log *logger.Logger, cfg *config.Config) {
 	// Create validator
 	validator := validator.NewValidator()
 
@@ -91,7 +91,7 @@ func RegisterRoutes(router *gin.RouterGroup, db *persistence.PostgresDB, log *lo
 	}
 
 	// Register health check route
-	router.GET("/health", func(c *gin.Context) {
+	router.GET("/health", func(c echo.Context) error {
 		// Create a strongly typed health response
 		type HealthResponse struct {
 			Status string    `json:"status"`
@@ -103,6 +103,6 @@ func RegisterRoutes(router *gin.RouterGroup, db *persistence.PostgresDB, log *lo
 			Time:   time.Now().UTC(),
 		}
 
-		response.RespondWithGenericOK(c, "Service is healthy", healthData)
+		return response.RespondWithGenericOK(c, "Service is healthy", healthData)
 	})
 }

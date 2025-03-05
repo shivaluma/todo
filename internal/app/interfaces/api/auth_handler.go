@@ -1,17 +1,15 @@
 package api
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/internal/app/application/command"
-	"github.com/sh1ro/todo-api/internal/app/domain/model"
 	"github.com/sh1ro/todo-api/internal/app/interfaces/middleware"
 	"github.com/sh1ro/todo-api/pkg/logger"
 	"github.com/sh1ro/todo-api/pkg/response"
 	"github.com/sh1ro/todo-api/pkg/validator"
 )
 
-// AuthHandler handles authentication related requests
+// AuthHandler handles authentication requests
 type AuthHandler struct {
 	BaseHandler
 	registerUserHandler *command.RegisterUserHandler
@@ -38,11 +36,10 @@ func NewAuthHandler(
 }
 
 // Register handles user registration
-func (h *AuthHandler) Register(c *gin.Context) {
+func (h *AuthHandler) Register(c echo.Context) error {
 	var cmd command.RegisterUserCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
-		response.RespondWithBadRequest(c, "Invalid JSON format")
-		return
+	if err := c.Bind(&cmd); err != nil {
+		return response.RespondWithBadRequest(c, "Invalid JSON format")
 	}
 
 	// Get request-specific logger
@@ -51,47 +48,25 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	// Validate the command
 	if errors := h.validator.Validate(cmd); errors != nil {
 		log.Error("Validation failed for user registration", "errors", errors)
-		response.RespondWithValidationError(c, "Validation failed", errors)
-		return
+		return response.RespondWithValidationError(c, "Validation failed", errors)
 	}
 
 	// Handle the command
-	user, err := h.registerUserHandler.Handle(c.Request.Context(), cmd)
+	user, err := h.registerUserHandler.Handle(c.Request().Context(), cmd)
 	if err != nil {
 		log.Error("Failed to register user", "error", err)
-		response.RespondWithBadRequest(c, err.Error())
-		return
+		return response.RespondWithInternalError(c, err.Error())
 	}
 
-	// Create a user response struct
-	type UserResponse struct {
-		ID       string `json:"id"`
-		Fullname string `json:"fullname"`
-		Email    string `json:"email"`
-	}
-
-	userData := UserResponse{
-		ID:       user.ID.String(),
-		Fullname: user.Fullname,
-		Email:    user.Email,
-	}
-
-	// Use the generic response helper
-	response.RespondWithGenericCreated(c, "User registered successfully", userData)
-}
-
-// LoginResponse represents the response for a successful login
-type LoginResponse struct {
-	Token string `json:"token"`
-	User  *model.User `json:"user"`
+	// Return the user with a JWT token
+	return response.RespondWithCreated(c, "User registered successfully", user)
 }
 
 // Login handles user login
-func (h *AuthHandler) Login(c *gin.Context) {
+func (h *AuthHandler) Login(c echo.Context) error {
 	var cmd command.LoginUserCommand
-	if err := c.ShouldBindJSON(&cmd); err != nil {
-		response.RespondWithBadRequest(c, "Invalid JSON format")
-		return
+	if err := c.Bind(&cmd); err != nil {
+		return response.RespondWithBadRequest(c, "Invalid JSON format")
 	}
 
 	// Get request-specific logger
@@ -100,65 +75,49 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// Validate the command
 	if errors := h.validator.Validate(cmd); errors != nil {
 		log.Error("Validation failed for user login", "errors", errors)
-		response.RespondWithValidationError(c, "Validation failed", errors)
-		return
+		return response.RespondWithValidationError(c, "Validation failed", errors)
 	}
 
 	// Handle the command
-	result, err := h.loginUserHandler.Handle(c.Request.Context(), cmd)
+	user, err := h.loginUserHandler.Handle(c.Request().Context(), cmd)
 	if err != nil {
 		log.Error("Failed to login user", "error", err)
-		response.RespondWithUnauthorized(c, err.Error())
-		return
+		if err.Error() == "invalid credentials" {
+			return response.RespondWithUnauthorized(c, "Invalid email or password")
+		}
+		return response.RespondWithInternalError(c, err.Error())
 	}
 
-	// Create a strongly typed response
-	loginResponse := LoginResponse{
-		Token: result.Token,
-		User:  result.User,
-	}
-
-	// Use the generic response helper for type safety
-	response.RespondWithGenericOK(c, "Login successful", loginResponse)
+	// Return the user with a JWT token
+	return response.RespondWithOK(c, "User logged in successfully", user)
 }
 
-// Me returns the current user
-func (h *AuthHandler) Me(c *gin.Context) {
-	// Use the helper function to get user ID from context
+// Me handles getting the current user
+func (h *AuthHandler) Me(c echo.Context) error {
+	// Get user ID from context
 	userID, exists := middleware.GetUserID(c)
-    
-    // Get request-specific logger
-	log := h.GetLogger(c)
-    
-    log.Info("User ID", "user_id", userID)
-
 	if !exists {
-		log.Error("User ID not found in context")
-		response.RespondWithUnauthorized(c, "Unauthorized")
-		return
+		return response.RespondWithUnauthorized(c, "User ID not found in context")
 	}
 
-	user, err := h.getUserHandler.Handle(c.Request.Context(), command.GetUserCommand{
-		UserID: userID.(uuid.UUID).String(),
-	})
+	// Get request-specific logger
+	log := h.GetLogger(c)
+
+	// Create command
+	cmd := command.GetUserCommand{
+		UserID: userID.(string),
+	}
+
+	// Handle the command
+	user, err := h.getUserHandler.Handle(c.Request().Context(), cmd)
 	if err != nil {
 		log.Error("Failed to get user", "error", err)
-		response.RespondWithUnauthorized(c, "Failed to get user")
-		return
+		if err.Error() == "user not found" {
+			return response.RespondWithNotFound(c, "User not found")
+		}
+		return response.RespondWithInternalError(c, err.Error())
 	}
 
-	// Create a user response struct
-	type UserResponse struct {
-		ID       string `json:"id"`
-		Fullname string `json:"fullname"`
-		Email    string `json:"email"`
-	}
-
-	userData := UserResponse{
-		ID:       user.ID.String(),
-		Fullname: user.Fullname,
-		Email:    user.Email,
-	}
-
-	response.RespondWithGenericOK(c, "User retrieved successfully", userData)
+	// Return the user
+	return response.RespondWithOK(c, "User retrieved successfully", user)
 }

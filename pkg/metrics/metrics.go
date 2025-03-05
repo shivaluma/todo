@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -68,48 +68,52 @@ var (
 )
 
 // MetricsMiddleware returns a middleware that collects metrics for HTTP requests
-func MetricsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Increment active requests
-		ActiveRequests.Inc()
+func MetricsMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Increment active requests
+			ActiveRequests.Inc()
 
-		// Start timer
-		start := time.Now()
+			// Start timer
+			start := time.Now()
 
-		// Process request
-		c.Next()
+			// Process request
+			err := next(c)
 
-		// Decrement active requests
-		ActiveRequests.Dec()
+			// Decrement active requests
+			ActiveRequests.Dec()
 
-		// Calculate duration
-		duration := time.Since(start).Seconds()
+			// Calculate duration
+			duration := time.Since(start).Seconds()
 
-		// Get status code as string
-		statusCode := c.Writer.Status()
-		statusCodeStr := http.StatusText(statusCode)
+			// Get status code as string
+			statusCode := c.Response().Status
+			statusCodeStr := http.StatusText(statusCode)
 
-		// Get request method and path
-		method := c.Request.Method
-		path := c.FullPath()
-		if path == "" {
-			path = "unknown"
-		}
+			// Get request method and path
+			method := c.Request().Method
+			path := c.Path()
+			if path == "" {
+				path = "unknown"
+			}
 
-		// Record metrics
-		RequestsTotal.WithLabelValues(statusCodeStr, method, path).Inc()
-		RequestDuration.WithLabelValues(statusCodeStr, method, path).Observe(duration)
+			// Record metrics
+			RequestsTotal.WithLabelValues(statusCodeStr, method, path).Inc()
+			RequestDuration.WithLabelValues(statusCodeStr, method, path).Observe(duration)
 
-		// Record errors
-		if statusCode >= 400 {
-			ErrorsTotal.WithLabelValues("http").Inc()
+			// Record errors
+			if statusCode >= 400 {
+				ErrorsTotal.WithLabelValues("http").Inc()
+			}
+
+			return err
 		}
 	}
 }
 
 // RegisterMetricsEndpoint registers the metrics endpoint
-func RegisterMetricsEndpoint(router *gin.RouterGroup) {
-	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+func RegisterMetricsEndpoint(router *echo.Group) {
+	router.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 }
 
 // MeasureDatabaseOperation measures the duration of a database operation

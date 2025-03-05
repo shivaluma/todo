@@ -1,50 +1,36 @@
 package middleware
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/pkg/logger"
 )
 
-const (
-	// RequestIDHeader is the header key for request ID
-	RequestIDHeader = "X-Request-ID"
-)
+// RequestIDKey is the key used to store the request ID in the context
+const RequestIDKey = "request_id"
 
-// RequestIDKey is the context key for request ID
-const RequestIDKey contextKey = "requestID"
+// RequestID returns a middleware that adds a request ID to the context
+func RequestID(log *logger.Logger) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Check if request ID is already set in header
+			requestID := c.Request().Header.Get(echo.HeaderXRequestID)
+			if requestID == "" {
+				// Generate a new request ID
+				requestID = uuid.New().String()
+			}
 
-// GetRequestID retrieves the request ID from the context
-func GetRequestID(c *gin.Context) (string, bool) {
-	if id, exists := c.Get(string(RequestIDKey)); exists {
-		if requestID, ok := id.(string); ok {
-			return requestID, true
+			// Set request ID in response header
+			c.Response().Header().Set(echo.HeaderXRequestID, requestID)
+
+			// Create a request-specific logger with request ID
+			reqLogger := log.WithField("request_id", requestID)
+
+			// Store logger in context for handlers to use
+			c.Set("logger", reqLogger)
+
+			// Continue processing
+			return next(c)
 		}
-	}
-	return "", false
-}
-
-// RequestID returns a middleware that adds a unique request ID to each request
-func RequestID(log *logger.Logger) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Check if request already has an ID
-		requestID := c.GetHeader(RequestIDHeader)
-
-		// If no request ID is provided, generate a new one
-		if requestID == "" {
-			requestID = uuid.New().String()
-		}
-
-		// Set request ID in context for other handlers to use
-		c.Set(string(RequestIDKey), requestID)
-
-		// Set request ID in response header
-		c.Writer.Header().Set(RequestIDHeader, requestID)
-
-		// Add request ID to logger context
-		requestLogger := log.WithField("request_id", requestID)
-		c.Set("logger", requestLogger)
-
-		c.Next()
 	}
 }
