@@ -59,8 +59,6 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    ports:
-      - "5432:5432"
     environment:
       - POSTGRES_USER=${DB_USER:-postgres}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
@@ -205,8 +203,6 @@ services:
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
-    ports:
-      - "9187:9187"
     environment:
       - DATA_SOURCE_NAME=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-todo_db}?sslmode=disable
     restart: always
@@ -222,8 +218,6 @@ services:
 
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:latest
-    ports:
-      - "9113:9113"
     command:
       - "-nginx.scrape-uri=http://nginx:8080/stub_status"
     restart: always
