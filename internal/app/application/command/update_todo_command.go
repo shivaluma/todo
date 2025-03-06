@@ -2,10 +2,10 @@
 package command
 
 import (
-	"context"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/internal/app/domain/model"
 	"github.com/sh1ro/todo-api/internal/app/domain/service"
 	"github.com/sh1ro/todo-api/pkg/logger"
@@ -37,11 +37,13 @@ func NewUpdateTodoHandler(todoService *service.TodoService, logger *logger.Logge
 }
 
 // Handle handles the UpdateTodoCommand
-func (h *UpdateTodoHandler) Handle(ctx context.Context, cmd UpdateTodoCommand) (*model.Todo, error) {
-	h.logger.Info("Updating todo", "userID", cmd.UserID, "todoID", cmd.TodoID)
+func (h *UpdateTodoHandler) Handle(c echo.Context, cmd UpdateTodoCommand) (*model.Todo, error) {
+	// Get request-specific logger with request ID
+	log := logger.FromContext(c)
+	log.Info("Updating todo", "userID", cmd.UserID, "todoID", cmd.TodoID)
 
 	todo, err := h.todoService.UpdateTodo(
-		ctx,
+		c.Request().Context(),
 		cmd.UserID,
 		cmd.TodoID,
 		cmd.Title,
@@ -52,7 +54,7 @@ func (h *UpdateTodoHandler) Handle(ctx context.Context, cmd UpdateTodoCommand) (
 	)
 
 	if err != nil {
-		h.logger.Error("Failed to update todo", "error", err)
+		log.Error("Failed to update todo", "error", err)
 		return nil, err
 	}
 

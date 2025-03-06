@@ -1,8 +1,7 @@
 package command
 
 import (
-	"context"
-
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/internal/app/domain/model"
 	"github.com/sh1ro/todo-api/internal/app/domain/service"
 	"github.com/sh1ro/todo-api/pkg/logger"
@@ -28,12 +27,14 @@ func NewGetUserHandler(authService *service.AuthService, logger *logger.Logger) 
 }
 
 // Handle handles the GetUserCommand
-func (h *GetUserHandler) Handle(ctx context.Context, cmd GetUserCommand) (*model.User, error) {
-	h.logger.Info("Getting current user details")
+func (h *GetUserHandler) Handle(c echo.Context, cmd GetUserCommand) (*model.User, error) {
+	// Get request-specific logger with request ID
+	log := logger.FromContext(c)
+	log.Info("Getting current user details")
 
-	user, err := h.authService.GetUserFromId(ctx, cmd.UserID)
+	user, err := h.authService.GetUserFromId(c.Request().Context(), cmd.UserID)
 	if err != nil {
-		h.logger.Error("Failed to get user", "user_id", cmd.UserID, "error", err)
+		log.Error("Failed to get user", "user_id", cmd.UserID, "error", err)
 		return nil, err
 	}
 

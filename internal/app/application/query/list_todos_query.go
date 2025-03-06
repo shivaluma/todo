@@ -2,10 +2,10 @@
 package query
 
 import (
-	"context"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/internal/app/domain/model"
 	"github.com/sh1ro/todo-api/internal/app/domain/repository"
 	"github.com/sh1ro/todo-api/internal/app/domain/service"
@@ -50,8 +50,10 @@ func NewListTodosHandler(todoService *service.TodoService, logger *logger.Logger
 }
 
 // Handle handles the ListTodosQuery
-func (h *ListTodosHandler) Handle(ctx context.Context, query ListTodosQuery) (*TodosResult, error) {
-	h.logger.Info("Listing todos", "userID", query.UserID)
+func (h *ListTodosHandler) Handle(c echo.Context, query ListTodosQuery) (*TodosResult, error) {
+	// Get request-specific logger with request ID
+	log := logger.FromContext(c)
+	log.Info("Listing todos", "userID", query.UserID)
 
 	// Set default values
 	page := 1
@@ -82,9 +84,9 @@ func (h *ListTodosHandler) Handle(ctx context.Context, query ListTodosQuery) (*T
 	}
 
 	// Get todos and count
-	todos, count, err := h.todoService.ListTodos(ctx, filter)
+	todos, count, err := h.todoService.ListTodos(c.Request().Context(), filter)
 	if err != nil {
-		h.logger.Error("Failed to list todos", "error", err)
+		log.Error("Failed to list todos", "error", err)
 		return nil, err
 	}
 

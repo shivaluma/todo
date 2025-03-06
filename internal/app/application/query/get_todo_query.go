@@ -2,9 +2,8 @@
 package query
 
 import (
-	"context"
-
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/internal/app/domain/model"
 	"github.com/sh1ro/todo-api/internal/app/domain/service"
 	"github.com/sh1ro/todo-api/pkg/logger"
@@ -31,12 +30,14 @@ func NewGetTodoHandler(todoService *service.TodoService, logger *logger.Logger) 
 }
 
 // Handle handles the GetTodoQuery
-func (h *GetTodoHandler) Handle(ctx context.Context, query GetTodoQuery) (*model.Todo, error) {
-	h.logger.Info("Getting todo", "userID", query.UserID, "todoID", query.TodoID)
+func (h *GetTodoHandler) Handle(c echo.Context, query GetTodoQuery) (*model.Todo, error) {
+	// Get request-specific logger with request ID
+	log := logger.FromContext(c)
+	log.Info("Getting todo", "userID", query.UserID, "todoID", query.TodoID)
 
-	todo, err := h.todoService.GetUserTodo(ctx, query.UserID, query.TodoID)
+	todo, err := h.todoService.GetUserTodo(c.Request().Context(), query.UserID, query.TodoID)
 	if err != nil {
-		h.logger.Error("Failed to get todo", "error", err)
+		log.Error("Failed to get todo", "error", err)
 		return nil, err
 	}
 

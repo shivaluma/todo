@@ -2,8 +2,7 @@
 package command
 
 import (
-	"context"
-
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/internal/app/domain/model"
 	"github.com/sh1ro/todo-api/internal/app/domain/service"
 	"github.com/sh1ro/todo-api/pkg/logger"
@@ -31,12 +30,14 @@ func NewRegisterUserHandler(authService *service.AuthService, logger *logger.Log
 }
 
 // Handle handles the RegisterUserCommand
-func (h *RegisterUserHandler) Handle(ctx context.Context, cmd RegisterUserCommand) (*model.User, error) {
-	h.logger.Info("Registering user", "fullname", cmd.Fullname, "email", cmd.Email)
+func (h *RegisterUserHandler) Handle(c echo.Context, cmd RegisterUserCommand) (*model.User, error) {
+	// Get request-specific logger with request ID
+	log := logger.FromContext(c)
+	log.Info("Registering user", "fullname", cmd.Fullname, "email", cmd.Email)
 
-	user, err := h.authService.Register(ctx, cmd.Fullname, cmd.Email, cmd.Password)
+	user, err := h.authService.Register(c.Request().Context(), cmd.Fullname, cmd.Email, cmd.Password)
 	if err != nil {
-		h.logger.Error("Failed to register user", "error", err)
+		log.Error("Failed to register user", "error", err)
 		return nil, err
 	}
 

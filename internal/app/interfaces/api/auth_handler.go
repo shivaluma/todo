@@ -52,7 +52,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	}
 
 	// Handle the command
-	user, err := h.registerUserHandler.Handle(c.Request().Context(), cmd)
+	user, err := h.registerUserHandler.Handle(c, cmd)
 	if err != nil {
 		log.Error("Failed to register user", "error", err)
 		return response.RespondWithInternalError(c, err.Error())
@@ -80,7 +80,7 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	}
 
 	// Handle the command
-	user, err := h.loginUserHandler.Handle(c.Request().Context(), cmd)
+	user, err := h.loginUserHandler.Handle(c, cmd)
 	if err != nil {
 		log.Error("Failed to login user", "error", err)
 		if err.Error() == "invalid credentials" {
@@ -110,7 +110,7 @@ func (h *AuthHandler) Me(c echo.Context) error {
 	}
 
 	// Handle the command
-	user, err := h.getUserHandler.Handle(c.Request().Context(), cmd)
+	user, err := h.getUserHandler.Handle(c, cmd)
 	if err != nil {
 		log.Error("Failed to get user", "error", err)
 		if err.Error() == "user not found" {

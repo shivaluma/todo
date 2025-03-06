@@ -2,9 +2,8 @@
 package command
 
 import (
-	"context"
-
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/internal/app/domain/service"
 	"github.com/sh1ro/todo-api/pkg/logger"
 )
@@ -30,12 +29,14 @@ func NewDeleteTodoHandler(todoService *service.TodoService, logger *logger.Logge
 }
 
 // Handle handles the DeleteTodoCommand
-func (h *DeleteTodoHandler) Handle(ctx context.Context, cmd DeleteTodoCommand) error {
-	h.logger.Info("Deleting todo", "userID", cmd.UserID, "todoID", cmd.ID)
+func (h *DeleteTodoHandler) Handle(c echo.Context, cmd DeleteTodoCommand) error {
+	// Get request-specific logger with request ID
+	log := logger.FromContext(c)
+	log.Info("Deleting todo", "userID", cmd.UserID, "todoID", cmd.ID)
 
-	err := h.todoService.DeleteTodo(ctx, cmd.UserID, cmd.ID)
+	err := h.todoService.DeleteTodo(c.Request().Context(), cmd.UserID, cmd.ID)
 	if err != nil {
-		h.logger.Error("Failed to delete todo", "error", err)
+		log.Error("Failed to delete todo", "error", err)
 		return err
 	}
 

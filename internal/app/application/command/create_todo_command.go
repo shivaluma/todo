@@ -2,10 +2,10 @@
 package command
 
 import (
-	"context"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/internal/app/domain/model"
 	"github.com/sh1ro/todo-api/internal/app/domain/service"
 	"github.com/sh1ro/todo-api/pkg/logger"
@@ -35,11 +35,13 @@ func NewCreateTodoHandler(todoService *service.TodoService, logger *logger.Logge
 }
 
 // Handle handles the CreateTodoCommand
-func (h *CreateTodoHandler) Handle(ctx context.Context, cmd CreateTodoCommand) (*model.Todo, error) {
-	h.logger.Info("Creating todo", "userID", cmd.UserID, "title", cmd.Title)
+func (h *CreateTodoHandler) Handle(c echo.Context, cmd CreateTodoCommand) (*model.Todo, error) {
+	// Get request-specific logger with request ID
+	log := logger.FromContext(c)
+	log.Info("Creating todo", "userID", cmd.UserID, "title", cmd.Title)
 
 	todo, err := h.todoService.CreateTodo(
-		ctx,
+		c.Request().Context(),
 		cmd.UserID,
 		cmd.Title,
 		cmd.Description,
@@ -48,7 +50,7 @@ func (h *CreateTodoHandler) Handle(ctx context.Context, cmd CreateTodoCommand) (
 	)
 
 	if err != nil {
-		h.logger.Error("Failed to create todo", "error", err)
+		log.Error("Failed to create todo", "error", err)
 		return nil, err
 	}
 

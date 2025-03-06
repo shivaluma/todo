@@ -1,9 +1,6 @@
 package api
 
 import (
-	"net/http"
-	"strconv"
-
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/sh1ro/todo-api/internal/app/application/command"
@@ -74,7 +71,7 @@ func (h *TodoHandler) CreateTodo(c echo.Context) error {
 	cmd.UserID = userID.(uuid.UUID)
 
 	// Handle the command
-	todo, err := h.createTodoHandler.Handle(c.Request().Context(), cmd)
+	todo, err := h.createTodoHandler.Handle(c, cmd)
 	if err != nil {
 		log.Error("Failed to create todo", "error", err)
 		return response.RespondWithInternalError(c, err.Error())
@@ -114,7 +111,7 @@ func (h *TodoHandler) GetTodo(c echo.Context) error {
 	}
 
 	// Handle the query
-	todo, err := h.getTodoHandler.Handle(c.Request().Context(), q)
+	todo, err := h.getTodoHandler.Handle(c, q)
 	if err != nil {
 		log.Error("Failed to get todo", "error", err)
 		if err.Error() == "todo not found" {
@@ -138,44 +135,46 @@ func (h *TodoHandler) ListTodos(c echo.Context) error {
 	// Get request-specific logger
 	log := h.GetLogger(c)
 
-	// Parse query parameters
-	page, _ := strconv.Atoi(c.QueryParam("page"))
-	if page <= 0 {
-		page = 1
-	}
-
-	pageSize, _ := strconv.Atoi(c.QueryParam("page_size"))
-	if pageSize <= 0 {
-		pageSize = 10
-	}
-
-	status := c.QueryParam("status")
-	priority := c.QueryParam("priority")
-	search := c.QueryParam("search")
-	sortBy := c.QueryParam("sort_by")
-	sortOrder := c.QueryParam("sort_order")
-
-	// Create query
+	// Create query with default values
 	q := query.ListTodosQuery{
 		UserID:    userID.(uuid.UUID),
-		Page:      page,
-		PageSize:  pageSize,
-		Status:    model.TodoStatusPtr(model.TodoStatus(status)),
-		Priority:  model.TodoPriorityPtr(model.TodoPriority(priority)),
-		Search:    &search,
-		SortBy:    sortBy,
-		SortOrder: sortOrder,
+		Page:      1,
+		PageSize:  10,
+		SortBy:    "created_at",
+		SortOrder: "desc",
+	}
+
+	// Bind query parameters
+	if err := c.Bind(&q); err != nil {
+		return response.RespondWithBadRequest(c, "Invalid query parameters")
+	}
+
+	// Parse status filter
+	if statusStr := c.QueryParam("status"); statusStr != "" {
+		status := model.TodoStatus(statusStr)
+		q.Status = &status
+	}
+
+	// Parse priority filter
+	if priorityStr := c.QueryParam("priority"); priorityStr != "" {
+		priority := model.TodoPriority(priorityStr)
+		q.Priority = &priority
+	}
+
+	// Parse search filter
+	if search := c.QueryParam("search"); search != "" {
+		q.Search = &search
 	}
 
 	// Handle the query
-	result, err := h.listTodosHandler.Handle(c.Request().Context(), q)
+	result, err := h.listTodosHandler.Handle(c, q)
 	if err != nil {
 		log.Error("Failed to list todos", "error", err)
 		return response.RespondWithInternalError(c, err.Error())
 	}
 
-	// Return the todos with pagination
-	return response.RespondWithPaginated(c, http.StatusOK, "Todos retrieved successfully", result.Todos, result)
+	// Return the todos
+	return response.RespondWithOK(c, "Todos retrieved successfully", result)
 }
 
 // GetOverdueTodos handles getting overdue todos
@@ -195,13 +194,13 @@ func (h *TodoHandler) GetOverdueTodos(c echo.Context) error {
 	}
 
 	// Handle the query
-	todos, err := h.getOverdueTodosHandler.Handle(c.Request().Context(), q)
+	todos, err := h.getOverdueTodosHandler.Handle(c, q)
 	if err != nil {
 		log.Error("Failed to get overdue todos", "error", err)
 		return response.RespondWithInternalError(c, err.Error())
 	}
 
-	// Return the overdue todos
+	// Return the todos
 	return response.RespondWithOK(c, "Overdue todos retrieved successfully", todos)
 }
 
@@ -245,7 +244,7 @@ func (h *TodoHandler) UpdateTodo(c echo.Context) error {
 	}
 
 	// Handle the command
-	todo, err := h.updateTodoHandler.Handle(c.Request().Context(), cmd)
+	todo, err := h.updateTodoHandler.Handle(c, cmd)
 	if err != nil {
 		log.Error("Failed to update todo", "error", err)
 		if err.Error() == "todo not found" {
@@ -288,7 +287,7 @@ func (h *TodoHandler) DeleteTodo(c echo.Context) error {
 	}
 
 	// Handle the command
-	err = h.deleteTodoHandler.Handle(c.Request().Context(), cmd)
+	err = h.deleteTodoHandler.Handle(c, cmd)
 	if err != nil {
 		log.Error("Failed to delete todo", "error", err)
 		if err.Error() == "todo not found" {
